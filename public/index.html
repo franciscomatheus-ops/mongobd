@@ -2,48 +2,26 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Produtos</title>
+    <title>Produtos - MongoDB Atlas</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f2f2f2;
+            font-family: Arial;
+            background: #f7f7f7;
             padding: 20px;
         }
-
-        h1, h2 {
-            text-align: center;
-        }
-
-        form {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 400px;
-            margin: 20px auto;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
+        h1 { color: #333; }
         input, button {
-            width: 100%;
             padding: 10px;
-            margin-top: 10px;
+            margin: 5px 0;
         }
-
-        #produtosListados {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        button {
+            cursor: pointer;
         }
-
         .produto {
+            background: white;
             padding: 10px;
-            background: #e9e9e9;
-            margin-bottom: 8px;
-            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #2ecc71;
         }
     </style>
 </head>
@@ -51,86 +29,52 @@
 
     <h1>Cadastro de Produtos</h1>
 
-    <!-- FORMULÁRIO DE CADASTRO -->
-    <form id="formProduto">
-        <h2>Adicionar Produto</h2>
+    <input type="text" id="nome" placeholder="Nome do produto"><br>
+    <input type="number" id="preco" placeholder="Preço"><br>
 
-        <input type="text" id="nome" placeholder="Nome do produto" required>
+    <button onclick="adicionarProduto()">Adicionar</button>
 
-        <input type="number" id="valorUni" placeholder="Valor por Unidade" required>
-
-        <input type="number" id="valorKg" placeholder="Valor por Kg">
-
-        <input type="number" id="estoque" placeholder="Estoque disponível" required>
-
-        <input type="number" id="custo" placeholder="Custo do produto" required>
-
-        <select id="vKg">
-            <option value="true">Vende por Kg: SIM</option>
-            <option value="false">Vende por Kg: NÃO</option>
-        </select>
-
-        <button type="submit">Adicionar Produto</button>
-    </form>
-
-    <!-- LINK PARA VER OS PRODUTOS -->
-    <h2 style="text-align:center;">
-        <button onclick="listarProdutos()">Ver produtos cadastrados</button>
-    </h2>
-
-    <!-- LISTA DE PRODUTOS -->
-    <div id="produtosListados"></div>
+    <h2>Produtos cadastrados</h2>
+    <div id="lista"></div>
 
     <script>
-        // Enviar o produto para a API
-        document.getElementById("formProduto").addEventListener("submit", async function(e) {
-            e.preventDefault();
+        const API = "https://mongo-production-68e0.up.railway.app/"; // 🔥 Trocar se necessário
 
-            // Capturar valores do form
-            const data = {
-                nome: document.getElementById("nome").value,
-                valorUni: Number(document.getElementById("valorUni").value),
-                valorKg: Number(document.getElementById("valorKg").value),
-                vKg: document.getElementById("vKg").value === "true",
-                estoque: Number(document.getElementById("estoque").value),
-                custo: Number(document.getElementById("custo").value)
-            };
+        // Listar produtos ao carregar a página
+        async function listar() {
+            const res = await fetch(API + "/listar");
+            const dados = await res.json();
 
-            // Enviar via POST
-            const resposta = await fetch("http://localhost:3000/adicionar", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
+            const lista = document.getElementById("lista");
+            lista.innerHTML = "";
 
-            const json = await resposta.json();
-            alert("Produto adicionado com sucesso!\nID: " + json.id);
-
-            // Limpar formulário
-            document.getElementById("formProduto").reset();
-        });
-
-        // Listar produtos cadastrados
-        async function listarProdutos() {
-            const resp = await fetch("http://localhost:3000/listar");
-            const produtos = await resp.json();
-
-            const area = document.getElementById("produtosListados");
-            area.innerHTML = "<h2>Produtos cadastrados:</h2>";
-
-            produtos.forEach(p => {
-                area.innerHTML += `
+            dados.forEach(p => {
+                lista.innerHTML += `
                     <div class="produto">
-                        <strong>${p.nome}</strong><br>
-                        Valor Unid.: R$ ${p.valorUni}<br>
-                        Valor Kg: R$ ${p.valorKg}<br>
-                        Vende por Kg: ${p.vKg ? "Sim" : "Não"}<br>
-                        Estoque: ${p.estoque}<br>
-                        Custo: R$ ${p.custo}
+                        <strong>${p.nome || "Sem nome"}</strong><br>
+                        Preço: R$ ${p.preco || 0}
                     </div>
                 `;
             });
         }
+
+        // Adicionar produto
+        async function adicionarProduto() {
+            const nome = document.getElementById("nome").value;
+            const preco = Number(document.getElementById("preco").value);
+
+            await fetch(API + "/adicionar", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ nome, preco })
+            });
+
+            alert("Produto adicionado!");
+            listar();
+        }
+
+        listar();
     </script>
+
 </body>
 </html>
