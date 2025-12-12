@@ -64,25 +64,30 @@
     <div id="lista"></div>
 
     <script>
-        // 🔥 SEU DOMÍNIO DO RAILWAY:
+        // 🔥 Seu backend no Railway:
         const API = "https://mongo-production-68e0.up.railway.app";
 
         // ---------- LISTAR ----------
         async function listar() {
-            const req = await fetch(API + "/listar");
-            const dados = await req.json();
+            try {
+                const req = await fetch(API + "/listar", { mode: "cors" });
+                const dados = await req.json();
 
-            const lista = document.getElementById("lista");
-            lista.innerHTML = "";
+                const lista = document.getElementById("lista");
+                lista.innerHTML = "";
 
-            dados.forEach(produto => {
-                lista.innerHTML += `
-                    <div class="produto">
-                        <strong>${produto.nome}</strong><br>
-                        Preço: R$ ${produto.preco}
-                    </div>
-                `;
-            });
+                dados.forEach(produto => {
+                    lista.innerHTML += `
+                        <div class="produto">
+                            <strong>${produto.nome}</strong><br>
+                            Preço: R$ ${produto.preco}
+                        </div>
+                    `;
+                });
+
+            } catch (erro) {
+                console.error("Erro ao listar:", erro);
+            }
         }
 
         // ---------- ADICIONAR ----------
@@ -95,16 +100,22 @@
                 return;
             }
 
-            await fetch(API + "/adicionar", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nome, preco })
-            });
+            try {
+                await fetch(API + "/adicionar", {
+                    method: "POST",
+                    mode: "cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nome, preco })
+                });
 
-            document.getElementById("nome").value = "";
-            document.getElementById("preco").value = "";
+                document.getElementById("nome").value = "";
+                document.getElementById("preco").value = "";
 
-            listar(); // Atualiza a lista
+                listar();
+
+            } catch (erro) {
+                console.error("Erro ao adicionar:", erro);
+            }
         }
 
         // Carregar ao iniciar
