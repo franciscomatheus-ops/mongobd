@@ -1,57 +1,115 @@
-const express = require("express");
-const { MongoClient } = require("mongodb");
-const cors = require("cors");
-const path = require("path");
-require("dotenv").config();
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Produtos - MongoDB Atlas</title>
 
-const app = express();
-app.use(express.json());
-app.use(cors());
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
 
-// SERVE ARQUIVOS ESTÁTICOS
-app.use(express.static(path.join(__dirname, "public")));
+        h1 {
+            color: #333;
+        }
 
-const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri);
+        .input-box {
+            margin-bottom: 10px;
+        }
 
-// Conectar ao MongoDB
-async function connectDB() {
-    try {
-        await client.connect();
-        console.log("Conectado ao MongoDB Atlas!");
-    } catch (err) {
-        console.error("Erro ao conectar ao MongoDB:", err);
-    }
-}
-connectDB();
+        input {
+            padding: 10px;
+            width: 250px;
+            font-size: 16px;
+        }
 
-// ROTA PRINCIPAL SERVE O INDEX.HTML
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+        button {
+            padding: 10px 15px;
+            background-color: #2ecc71;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+        }
 
-// LISTAR
-app.get("/listar", async (req, res) => {
-    try {
-        const db = client.db("products");
-        const produtos = await db.collection("produtos").find().toArray();
-        res.send(produtos);
-    } catch {
-        res.status(500).send({ error: "Erro ao listar" });
-    }
-});
+        button:hover {
+            background-color: #27ae60;
+        }
 
-// ADICIONAR
-app.post("/adicionar", async (req, res) => {
-    try {
-        const db = client.db("products");
-        const result = await db.collection("produtos").insertOne(req.body);
-        res.send({ message: "Produto adicionado!", id: result.insertedId });
-    } catch {
-        res.status(500).send({ error: "Erro ao adicionar" });
-    }
-});
+        .produto {
+            padding: 12px;
+            background: white;
+            margin-top: 10px;
+            border-left: 4px solid #2ecc71;
+        }
+    </style>
+</head>
+<body>
 
-// PORTA DO RAILWAY
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+    <h1>Cadastro de Produtos</h1>
+
+    <div class="input-box">
+        <input type="text" id="nome" placeholder="Nome do produto">
+    </div>
+
+    <div class="input-box">
+        <input type="number" id="preco" placeholder="Preço">
+    </div>
+
+    <button onclick="adicionar()">Adicionar Produto</button>
+
+    <h2>Lista de produtos</h2>
+    <div id="lista"></div>
+
+    <script>
+        // 🔥 SEU DOMÍNIO DO RAILWAY:
+        const API = "https://mongo-production-68e0.up.railway.app";
+
+        // ---------- LISTAR ----------
+        async function listar() {
+            const req = await fetch(API + "/listar");
+            const dados = await req.json();
+
+            const lista = document.getElementById("lista");
+            lista.innerHTML = "";
+
+            dados.forEach(produto => {
+                lista.innerHTML += `
+                    <div class="produto">
+                        <strong>${produto.nome}</strong><br>
+                        Preço: R$ ${produto.preco}
+                    </div>
+                `;
+            });
+        }
+
+        // ---------- ADICIONAR ----------
+        async function adicionar() {
+            const nome = document.getElementById("nome").value;
+            const preco = Number(document.getElementById("preco").value);
+
+            if (!nome || preco <= 0) {
+                alert("Preencha os campos corretamente.");
+                return;
+            }
+
+            await fetch(API + "/adicionar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nome, preco })
+            });
+
+            document.getElementById("nome").value = "";
+            document.getElementById("preco").value = "";
+
+            listar(); // Atualiza a lista
+        }
+
+        // Carregar ao iniciar
+        listar();
+    </script>
+
+</body>
+</html>
