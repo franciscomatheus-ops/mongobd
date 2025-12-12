@@ -1,53 +1,66 @@
 const express = require("express");
 const { MongoClient } = require("mongodb");
 const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// SUA connection string
-const uri = const uri = process.env.MONGODB_URI;
-;
-
+// Conexão usando variável do Railway
+const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 
+// Conecta ao banco
 async function connectDB() {
     try {
         await client.connect();
         console.log("Conectado ao MongoDB Atlas!");
     } catch (err) {
-        console.log("Erro ao conectar:", err);
+        console.error("Erro ao conectar ao MongoDB:", err);
     }
 }
 connectDB();
 
-// LISTAR TODOS
-app.get("/listar", async (req, res) => {
-    const db = client.db("products");
-    const collection = db.collection("produtos");
-    const result = await collection.find().toArray();
-    res.send(result);
+// Rota inicial
+app.get("/", (req, res) => {
+    res.send("API ONLINE ✔️");
 });
 
+// LISTAR PRODUTOS
+app.get("/listar", async (req, res) => {
+    try {
+        const db = client.db("products");
+        const collection = db.collection("produtos");
+
+        const result = await collection.find().toArray();
+        res.send(result);
+    } catch (err) {
+        res.status(500).send({ error: "Erro ao listar produtos" });
+    }
+});
+
+// ADICIONAR PRODUTO
 app.post("/adicionar", async (req, res) => {
     try {
         const db = client.db("products");
         const collection = db.collection("produtos");
 
-        const novoProduto = req.body; // recebe o JSON enviado pelo cliente
-        
-        const result = await collection.insertOne(novoProduto);
+        const novo = req.body;
+
+        const result = await collection.insertOne(novo);
+
         res.send({
-            message: "Produto adicionado com sucesso!",
+            message: "Produto adicionado!",
             id: result.insertedId
         });
     } catch (err) {
-        console.log("Erro ao adicionar produto:", err);
         res.status(500).send({ error: "Erro ao adicionar produto" });
     }
 });
 
-
+// Porta dinâmica do Railway
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
