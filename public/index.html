@@ -1,80 +1,57 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Produtos - MongoDB Atlas</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #f7f7f7;
-            padding: 20px;
-        }
-        h1 { color: #333; }
-        input, button {
-            padding: 10px;
-            margin: 5px 0;
-        }
-        button {
-            cursor: pointer;
-        }
-        .produto {
-            background: white;
-            padding: 10px;
-            margin: 10px 0;
-            border-left: 4px solid #2ecc71;
-        }
-    </style>
-</head>
-<body>
+const express = require("express");
+const { MongoClient } = require("mongodb");
+const cors = require("cors");
+const path = require("path");
+require("dotenv").config();
 
-    <h1>Cadastro de Produtos</h1>
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-    <input type="text" id="nome" placeholder="Nome do produto"><br>
-    <input type="number" id="preco" placeholder="Preço"><br>
+// SERVE ARQUIVOS ESTÁTICOS
+app.use(express.static(path.join(__dirname, "public")));
 
-    <button onclick="adicionarProduto()">Adicionar</button>
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri);
 
-    <h2>Produtos cadastrados</h2>
-    <div id="lista"></div>
+// Conectar ao MongoDB
+async function connectDB() {
+    try {
+        await client.connect();
+        console.log("Conectado ao MongoDB Atlas!");
+    } catch (err) {
+        console.error("Erro ao conectar ao MongoDB:", err);
+    }
+}
+connectDB();
 
-    <script>
-        const API = "https://mongo-production-68e0.up.railway.app/"; // 🔥 Trocar se necessário
+// ROTA PRINCIPAL SERVE O INDEX.HTML
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-        // Listar produtos ao carregar a página
-        async function listar() {
-            const res = await fetch(API + "/listar");
-            const dados = await res.json();
+// LISTAR
+app.get("/listar", async (req, res) => {
+    try {
+        const db = client.db("products");
+        const produtos = await db.collection("produtos").find().toArray();
+        res.send(produtos);
+    } catch {
+        res.status(500).send({ error: "Erro ao listar" });
+    }
+});
 
-            const lista = document.getElementById("lista");
-            lista.innerHTML = "";
+// ADICIONAR
+app.post("/adicionar", async (req, res) => {
+    try {
+        const db = client.db("products");
+        const result = await db.collection("produtos").insertOne(req.body);
+        res.send({ message: "Produto adicionado!", id: result.insertedId });
+    } catch {
+        res.status(500).send({ error: "Erro ao adicionar" });
+    }
+});
 
-            dados.forEach(p => {
-                lista.innerHTML += `
-                    <div class="produto">
-                        <strong>${p.nome || "Sem nome"}</strong><br>
-                        Preço: R$ ${p.preco || 0}
-                    </div>
-                `;
-            });
-        }
-
-        // Adicionar produto
-        async function adicionarProduto() {
-            const nome = document.getElementById("nome").value;
-            const preco = Number(document.getElementById("preco").value);
-
-            await fetch(API + "/adicionar", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ nome, preco })
-            });
-
-            alert("Produto adicionado!");
-            listar();
-        }
-
-        listar();
-    </script>
-
-</body>
-</html>
+// PORTA DO RAILWAY
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
